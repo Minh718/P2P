@@ -82,7 +82,6 @@ def handle_peer(peerClient):
     
         l = f.read(3900)
         while l:
-            print("oke")
             isSend += 3900
             percent = math.floor((isSend/file_size)*100)
             data = json.dumps({
@@ -90,8 +89,8 @@ def handle_peer(peerClient):
             "percent": percent
             }).encode()
             peerClient.send(data)
+            time.sleep(0.2)
             l = f.read(3900)
-            peerClient.recv(1024).decode()
         f.close()
         peerClient.shutdown(socket.SHUT_WR)
     peerClient.close()
@@ -179,8 +178,6 @@ def procRecvFile(addrUser,path_save, percent_download):
             data = mess["data"]
             f.write(data)
             percent_download.config(text=f"Đã tải xuống được {percent}%")
-            # time.sleep(0.2)
-            clientPeer.send("success".encode())
             mess = clientPeer.recv(4069).decode()
         percent_download.config(text="Đã tải xuống thành công")
         f.close()
