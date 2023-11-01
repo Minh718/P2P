@@ -1,0 +1,16 @@
+{
+   "users": [{"isOnl": false, 
+    "username": "quynh", 
+    "password": "123", 
+    "files": [], 
+    "addrClient": null, "addrServer": null
+    },
+    {"isOnl": false, 
+    "username": "minh", 
+    "password": "123", 
+    "files": [], 
+    "addrClient": null, "addrServer": null
+    }
+    
+]
+}
