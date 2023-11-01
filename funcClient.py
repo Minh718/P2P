@@ -7,25 +7,29 @@ import time
 serverName = '192.168.56.1'
 serverPort = 8888
 peerServer = None
+name = None
 hostname = socket.gethostname()
 ipLocal = socket.gethostbyname(hostname + '.local')
-clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-clientSocket.connect((serverName, serverPort))
 files = []
 addrUsers=[]
 
 def sendLogOut():
-    global server
-    data = json.dumps({
-    "command": "logout",
-    "data": ""}).encode()
-    server.close()
-    server = None
-    clientSocket.send(data)
+    global peerServer
+    global name
+    if not peerServer is None:
+        clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        clientSocket.connect((serverName, serverPort))
+        peerServer.close()
+        peerServer = None
+        data = json.dumps({
+        "command": "logout",
+        "data": {"username": name}}).encode()
+        clientSocket.send(data)
     return
 
 def sendRegister(username, password):
-    global clientSocket
+    clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    clientSocket.connect((serverName, serverPort))
     data = json.dumps({
     "command": "register",
     "data": {
@@ -34,21 +38,25 @@ def sendRegister(username, password):
     }}).encode()
     clientSocket.send(data)
     message = clientSocket.recv(1024).decode()
+    clientSocket.close()
     return message
 
 def sendGetUsersFile(fname):
-    global clientSocket
+    clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    clientSocket.connect((serverName, serverPort))
     global  addrUsers
     addrUsers = []
     data = json.dumps({
     "command": "fetchFile",
     "data": {
+    "username": name,
     "fname": fname,
     }}).encode()
     clientSocket.send(data)
     message = json.loads(clientSocket.recv(1024).decode())
     addrUsers = message["addrUsers"]
     users = list(map(lambda user: user[0], addrUsers))
+    clientSocket.close()
     return users    
 
 def acceptConnPeer(peerServer):
@@ -89,7 +97,10 @@ def handle_peer(peerClient):
     peerClient.close()
     
 def sendLogin(username, password):
-    global clientSocket
+    global name
+    name = username
+    clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    clientSocket.connect((serverName, serverPort))
     global peerServer
     global files
     data = json.dumps({
@@ -100,38 +111,44 @@ def sendLogin(username, password):
     }}).encode()
     clientSocket.send(data)
     message = clientSocket.recv(1024).decode()
-    if message == "success":
+    if not message:
+        return message
+    else:
         peerServer = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         peerServer.bind((ipLocal, 0))
         peerServer.listen(1)
-        
         threadConn = threading.Thread(target=acceptConnPeer, args=(peerServer,))
         threadConn.start()
-        
-        data = json.dumps({
-        "command": "completeLogin",
-        "data": {
+        print({
+        "username": username,
         "addrServer": peerServer.getsockname()
-        }}).encode()
+        })
+        data = json.dumps({
+        "username": username,
+        "addrServer": peerServer.getsockname()
+        }).encode()
         clientSocket.send(data)
         message = json.loads(clientSocket.recv(1024).decode())
         files = message["files"]
         avalFiles = message["avalFiles"]
+        clientSocket.close()
         return (username, files, avalFiles)
-    return False
 def sendPublishFile(lname, fname):
-    global clientSocket
+    clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    clientSocket.connect((serverName, serverPort))
     for file in files:
         if file[0] == lname and file[1] == fname:
             return "File này đã publish"
     data = json.dumps({
     "command": "publishFile",
     "data": {
+    "username": name,
     "lname": lname,
     "fname": fname
     }}).encode()
     clientSocket.send(data)
     files.append((lname, fname))
+    clientSocket.close()
     return True
 
 def sendFetchFile(user,path_save, percent_download):
@@ -162,13 +179,9 @@ def procRecvFile(addrUser,path_save, percent_download):
             data = mess["data"]
             f.write(data)
             percent_download.config(text=f"Đã tải xuống được {percent}%")
-            time.sleep(0.2)
+            # time.sleep(0.2)
             clientPeer.send("success".encode())
             mess = clientPeer.recv(4069).decode()
         percent_download.config(text="Đã tải xuống thành công")
         f.close()
         clientPeer.close()
-        
-def closeApp():
-    if peerServer is None: return
-    peerServer.close()

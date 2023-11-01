@@ -53,7 +53,9 @@ def login():
     password = flogin_password_entry.get()
     message = funcClient.sendLogin(username, password)
     # if(message == "success"):
-    if type(message) is tuple:
+    if not message:
+        error_login.config(text="Tài khoản hoặc mật khẩu không đúng", fg="red")
+    else:
         global files
         username = message[0]
         rightpagehome_username_label.config(text=username)
@@ -122,7 +124,7 @@ def logOut():
     window.geometry("400x350")
 
 def on_closing():
-    funcClient.closeApp()
+    funcClient.sendLogOut()
     window.destroy()
 # def OptionMenu_ChooseUser(event):
 #     messagebox.showinfo("Option Menu", "You have selected the option: " + str(optionList.get()))
@@ -168,6 +170,10 @@ flogin_login_button = tk.Button(flogin, text="Đăng nhập", command=login, cur
 flogin_login_button.pack(pady=10)
 flogin_register_button = tk.Button(flogin, text="Đi tới đăng ký", command=switch_to_fregister, borderwidth=0,  cursor="hand2")
 flogin_register_button.pack()
+
+error_login = tk.Label(flogin, text="Mật khẩu:", pady=20)
+error_login.pack()
+
 
 fregister_username_label = tk.Label(fregister, text="File sharing with P2P",font=font_style, pady=15)
 fregister_username_label.pack()
